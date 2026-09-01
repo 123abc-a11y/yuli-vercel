@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>屿礼·销售人员管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAFAF7;--accent:#B8976A;--text:#1A1A1A;--text2:#5A564E;--text3:#9A9488;--border:#E8E3DC;--serif:"Noto Serif SC",serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--serif);background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+.header{background:linear-gradient(135deg,#1a1a1a 0%,#2d2520 100%);padding:20px 16px 16px;text-align:center;position:sticky;top:0;z-index:100}
+.header h1{color:#fff;font-size:18px;font-weight:600;letter-spacing:1px}
+.header p{color:rgba(255,255,255,0.5);font-size:12px;margin-top:4px}
+
+/* Password Gate */
+.gate{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px}
+.gate.hidden{display:none}
+.gate-box{width:100%;max-width:300px;text-align:center}
+.gate-box h2{font-size:20px;margin-bottom:8px;color:var(--text)}
+.gate-box p{font-size:13px;color:var(--text3);margin-bottom:20px}
+.gate-box input{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:12px;font-size:15px;font-family:var(--serif);text-align:center;margin-bottom:14px}
+.gate-box input:focus{outline:none;border-color:var(--accent)}
+.gate-box button{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;font-family:var(--serif);cursor:pointer}
+.gate-err{color:#c0392b;font-size:13px;margin-top:8px;display:none}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:#fff;position:sticky;top:68px;z-index:90}
+.tab{flex:1;padding:14px 0;text-align:center;font-size:14px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+/* Content */
+.content{padding:16px}
+.panel{display:none}
+.panel.active{display:block}
+
+/* Account Cards */
+.account-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid var(--border);position:relative}
+.account-card .name{font-size:16px;font-weight:600;color:var(--text)}
+.account-card .username{font-size:13px;color:var(--text3);margin-top:2px}
+.account-card .info{display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--text2)}
+.account-card .info span{display:flex;align-items:center;gap:4px}
+.account-card .actions{display:flex;gap:8px;margin-top:12px}
+.account-card .actions button{padding:8px 16px;border-radius:8px;font-size:12px;font-family:var(--serif);cursor:pointer;border:none}
+.btn-toggle{background:#f0ebe3;color:var(--text2)}
+.btn-delete{background:#fde8e8;color:#c0392b}
+.btn-reset{background:#e8f4fd;color:#2980b9}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.badge-active{background:#e8f5e9;color:#27ae60}
+.badge-disabled{background:#fde8e8;color:#c0392b}
+.badge-deleted{background:#eee;color:#999}
+.btn-restore{background:#e8f4fd;color:#2980b9}
+.deleted-section{margin-top:20px;padding-top:16px;border-top:1px dashed #E8E3DC}
+.deleted-section h4{font-family:var(--serif);font-size:13px;color:#999;margin-bottom:12px;letter-spacing:1px}
+.deleted-card{opacity:0.6}
+
+/* Add Form */
+.add-form{background:#fff;border-radius:12px;padding:20px;border:1px solid var(--border);margin-bottom:16px}
+.add-form h3{font-size:15px;margin-bottom:14px;color:var(--text)}
+.add-form .field{margin-bottom:12px}
+.add-form label{display:block;font-size:12px;color:var(--text3);margin-bottom:4px}
+.add-form input{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:var(--serif)}
+.add-form input:focus{outline:none;border-color:var(--accent)}
+.add-form .btn-add{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:var(--serif);cursor:pointer;margin-top:4px}
+
+/* Orders */
+.order-card{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;border:1px solid var(--border)}
+.order-card .top{display:flex;justify-content:space-between;align-items:center}
+.order-card .order-id{font-size:14px;font-weight:600;color:var(--accent)}
+.order-card .time{font-size:11px;color:var(--text3)}
+.order-card .items{font-size:13px;color:var(--text2);margin-top:6px;line-height:1.6}
+.order-card .bottom{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #f0ebe3}
+.order-card .total{font-size:15px;font-weight:600;color:var(--text)}
+.order-card .customer{font-size:12px;color:var(--text3)}
+.status-tag{padding:2px 8px;border-radius:20px;font-size:11px}
+.status-待确认{background:#fff3e0;color:#e67e22}
+.status-已确认{background:#e8f5e9;color:#27ae60}
+.status-已发货{background:#e3f2fd;color:#2980b9}
+.status-已完成{background:#f0ebe3;color:var(--text2)}
+
+/* Filter */
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px}
+.filter-btn{padding:7px 14px;border-radius:20px;font-size:12px;border:1px solid var(--border);background:#fff;color:var(--text2);cursor:pointer;white-space:nowrap;font-family:var(--serif)}
+.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat-box{background:#fff;border-radius:10px;padding:14px;text-align:center;border:1px solid var(--border)}
+.stat-box .num{font-size:22px;font-weight:700;color:var(--accent)}
+.stat-box .label{font-size:11px;color:var(--text3);margin-top:4px}
+
+/* Toast */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Empty */
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>销售人员管理</h1>
+  <p>屿礼·九土</p>
+</div>
+
+<!-- Password Gate -->
+<div class="gate" id="gate">
+  <div class="gate-box">
+    <h2>管理员验证</h2>
+    <p>请输入管理密码</p>
+    <input type="password" id="gatePass" placeholder="管理密码" onkeydown="if(event.key==='Enter')checkGate()">
+    <button onclick="checkGate()">进 入</button>
+    <div class="gate-err" id="gateErr">密码错误，请重试</div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs" id="tabs">
+  <div class="tab active" data-tab="accounts" onclick="switchTab('accounts')">人员管理</div>
+  <div class="tab" data-tab="orders" onclick="switchTab('orders')">订单查询</div>
+  <div class="tab" data-tab="stats" onclick="switchTab('stats')">业绩统计</div>
+</div>
+
+
+<div class="content">
+  <!-- Panel: Accounts -->
+  <div class="panel active" id="panelAccounts">
+    <div class="add-form" id="addForm">
+      <h3>➕ 添加销售人员</h3>
+      <div class="field"><label>姓名</label><input id="addName" placeholder="如：张三"></div>
+      <div class="field"><label>工号</label><input id="addUser" placeholder="如：S001"></div>
+      <div class="field"><label>密码</label><input id="addPass" placeholder="登录密码"></div>
+      <button class="btn-add" onclick="addAccount()">确认添加</button>
+    </div>
+    <div id="accountList"></div>
+  </div>
+
+  <!-- Panel: Orders -->
+  <div class="panel" id="panelOrders">
+    <div class="filter-bar" id="filterBar"></div>
+    <div id="orderList"></div>
+  </div>
+
+  <!-- Panel: Stats -->
+  <div class="panel" id="panelStats">
+    <div class="stats" id="statsGrid"></div>
+    <div id="statsDetail"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 数据同步模块 =====
+// 所有设备通过飞书多维表格同步数据
+// localStorage 作为本地缓存，API 作为真实数据源
+
+const API_BASE = '';
+
+const DataManager = {
+  _orders: [],
+  _salesAccounts: [],
+  _ordersUpdated: 0,
+  _salesUpdated: 0,
+  _callbacks: [],
+
+  // ===== 初始化 =====
+  async init() {
+    try {
+      await Promise.all([this.loadOrders(), this.loadSalesAccounts()]);
+    } catch(e) {
+      console.warn('初始化加载失败:', e);
+    }
+    // 每5秒轮询同步
+    setInterval(() => this._poll(), 5000);
+  },
+
+  // ===== 轮询 =====
+  async _poll() {
+    try {
+      const resp = await fetch(API_BASE + '/api/orders');
+      const result = await resp.json();
+      if (result.ok && result.updated > this._ordersUpdated) {
+        this._orders = result.data;
+        this._ordersUpdated = result.updated;
+        try { localStorage.setItem('jiutu_orders', JSON.stringify(this._orders)); } catch(e) {}
+        this._notify();
+      }
+    } catch(e) { /* 网络错误静默处理 */ }
+
+    try {
+      const resp2 = await fetch(API_BASE + '/api/sales');
+      const result2 = await resp2.json();
+      if (result2.ok && result2.updated > this._salesUpdated) {
+        this._salesAccounts = result2.data;
+        this._salesUpdated = result2.updated;
+        try { localStorage.setItem('jiutu_sales_accounts', JSON.stringify(this._salesAccounts)); } catch(e) {}
+        this._notify();
+      }
+    } catch(e) { /* 网络错误静默处理 */ }
+  },
+
+  _notify() {
+    this._callbacks.forEach(cb => { try { cb(); } catch(e) {} });
+  },
+
+  onChange(cb) { this._callbacks.push(cb); },
+
+  // ===== 订单 =====
+  async loadOrders() {
+    try {
+      const resp = await fetch(API_BASE + '/api/orders');
+      const result = await resp.json();
+      if (result.ok) {
+        this._orders = result.data;
+        this._ordersUpdated = result.updated;
+        try { localStorage.setItem('jiutu_orders', JSON.stringify(this._orders)); } catch(e) {}
+        this._notify();
+      }
+    } catch(e) {
+      this._orders = JSON.parse(localStorage.getItem('jiutu_orders') || '[]');
+      this._notify();
+    }
+    return this._orders;
+  },
+
+  getOrders() { return this._orders; },
+
+  async saveOrder(orderData) {
+    try {
+      const resp = await fetch(API_BASE + '/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+      const result = await resp.json();
+      if (result.ok) {
+        await this.loadOrders();
+        this._notify();
+      }
+      return result;
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  async updateOrder(recordId, updates) {
+    try {
+      const resp = await fetch(API_BASE + '/api/orders/' + recordId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      const result = await resp.json();
+      if (result.ok) {
+        await this.loadOrders();
+        this._notify();
+      }
+      return result;
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  // ===== 销售人员 =====
+  async loadSalesAccounts() {
+    try {
+      const resp = await fetch(API_BASE + '/api/sales');
+      const result = await resp.json();
+      if (result.ok) {
+        this._salesAccounts = result.data;
+        this._salesUpdated = result.updated;
+        try { localStorage.setItem('jiutu_sales_accounts', JSON.stringify(this._salesAccounts)); } catch(e) {}
+        this._notify();
+      }
+    } catch(e) {
+      this._salesAccounts = JSON.parse(localStorage.getItem('jiutu_sales_accounts') || '[]');
+      this._notify();
+    }
+    return this._salesAccounts;
+  },
+
+  getSalesAccounts() { return this._salesAccounts; },
+
+  async addSalesAccount(data) {
+    try {
+      const resp = await fetch(API_BASE + '/api/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await resp.json();
+      if (result.ok) {
+        await this.loadSalesAccounts();
+        this._notify();
+      }
+      return result;
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  async updateSalesAccount(recordId, updates) {
+    try {
+      const resp = await fetch(API_BASE + '/api/sales/' + recordId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      const result = await resp.json();
+      if (result.ok) {
+        await this.loadSalesAccounts();
+        this._notify();
+      }
+      return result;
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  async deleteSalesAccount(recordId) {
+    try {
+      const resp = await fetch(API_BASE + '/api/sales/' + recordId, { method: 'DELETE' });
+      const result = await resp.json();
+      if (result.ok) {
+        await this.loadSalesAccounts();
+        this._notify();
+      }
+      return result;
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  // ===== 飞书通知代理 =====
+  async notifyFeishu(webhookUrl, message) {
+    try {
+      await fetch(API_BASE + '/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhook: webhookUrl, message })
+      });
+    } catch(e) {}
+  },
+
+  // ===== 购物车（仍用 localStorage，但同步到订单时走 API） =====
+  getCart() {
+    return JSON.parse(localStorage.getItem('jiutu_cart') || '[]');
+  },
+  saveCart(cart) {
+    localStorage.setItem('jiutu_cart', JSON.stringify(cart));
+  }
+};
+
+
+var ADMIN_PASS = 'jiutu2026';
+var authenticated = false;
+
+// === Gate ===
+function checkGate() {
+  var pass = document.getElementById('gatePass').value;
+  if (pass === ADMIN_PASS) {
+    document.getElementById('gate').classList.add('hidden');
+    authenticated = true;
+    render();
+  } else {
+    document.getElementById('gateErr').style.display = 'block';
+    document.getElementById('gatePass').value = '';
+  }
+}
+
+// === Tab ===
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.toggle('active', t.dataset.tab === tab); });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('panel' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  render();
+}
+
+// === Toast ===
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2000);
+}
+
+// === Data ===
+function getAccounts() {
+  return DataManager.getSalesAccounts();
+}
+function saveAccounts(list) {
+  // 不再直接保存，通过具体的 API 方法保存
+}
+function getOrders() {
+  return DataManager.getOrders();
+}
+
+// === Render ===
+function render() {
+  if (!authenticated) return;
+  renderAccounts();
+  renderOrders();
+  renderStats();
+}
+
+// === Accounts Panel ===
+function renderAccounts() {
+  var accounts = getAccounts();
+  var orders = getOrders();
+  var container = document.getElementById('accountList');
+  
+  var active = accounts.filter(function(a) { return !a.deleted; });
+  var deleted = accounts.filter(function(a) { return a.deleted; });
+  
+  if (active.length === 0 && deleted.length === 0) {
+    container.innerHTML = '<div class="empty">还没有销售人员<br>点击上方添加</div>';
+    return;
+  }
+  
+  var html = '';
+  // Active accounts
+  accounts.forEach(function(a, idx) {
+    if (a.deleted) return;
+    var orderCount = orders.filter(function(o) { return o.salesperson === a.name; }).length;
+    var totalAmount = orders.filter(function(o) { return o.salesperson === a.name; }).reduce(function(s, o) { return s + (parseFloat(o.total) || 0); }, 0);
+    html += '<div class="account-card">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+    html += '<div><span class="name">' + esc(a.name) + '</span> <span class="badge ' + (a.active ? 'badge-active' : 'badge-disabled') + '">' + (a.active ? '启用' : '停用') + '</span></div>';
+    html += '</div>';
+    html += '<div class="username">工号：' + esc(a.username) + '</div>';
+    html += '<div class="info"><span>📦 ' + orderCount + ' 单</span><span>💰 ¥' + totalAmount.toLocaleString() + '</span></div>';
+    html += '<div class="actions">';
+    html += '<button class="btn-toggle" onclick="toggleAccount(' + idx + ')">' + (a.active ? '停用' : '启用') + '</button>';
+    html += '<button class="btn-reset" onclick="resetPassword(' + idx + ')">重置密码</button>';
+    html += '<button class="btn-delete" onclick="deleteAccount(' + idx + ')">删除</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+  
+  // Deleted accounts section
+  if (deleted.length > 0) {
+    html += '<div class="deleted-section">';
+    html += '<h4>📋 已删除人员（' + deleted.length + '人）</h4>';
+    accounts.forEach(function(a, idx) {
+      if (!a.deleted) return;
+      var orderCount = orders.filter(function(o) { return o.salesperson === a.name; }).length;
+      var totalAmount = orders.filter(function(o) { return o.salesperson === a.name; }).reduce(function(s, o) { return s + (parseFloat(o.total) || 0); }, 0);
+      html += '<div class="account-card deleted-card">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+      html += '<div><span class="name">' + esc(a.name) + '</span> <span class="badge badge-deleted">已删除</span></div>';
+      html += '</div>';
+      html += '<div class="username">工号：' + esc(a.username) + '</div>';
+      html += '<div class="info"><span>📦 历史 ' + orderCount + ' 单</span><span>💰 ¥' + totalAmount.toLocaleString() + '</span><span>🕐 删除于 ' + formatTime(a.deletedAt) + '</span></div>';
+      html += '<div class="actions">';
+      html += '<button class="btn-restore" onclick="restoreAccount(' + idx + ')">恢复</button>';
+      html += '<button class="btn-delete" onclick="permanentDelete(' + idx + ')">彻底删除</button>';
+      html += '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  
+  container.innerHTML = html;
+}
+
+async function addAccount() {
+  var name = document.getElementById('addName').value.trim();
+  var user = document.getElementById('addUser').value.trim();
+  var pass = document.getElementById('addPass').value;
+  if (!name) { showToast('请输入姓名'); return; }
+  if (!user) { showToast('请输入工号'); return; }
+  if (!pass) { showToast('请输入密码'); return; }
+  
+  var accounts = getAccounts();
+  if (accounts.find(function(a) { return a.username === user && !a.deleted; })) {
+    showToast('工号已存在'); return;
+  }
+  
+  try {
+    var result = await DataManager.addSalesAccount({
+      name: name,
+      username: user,
+      password: pass,
+      active: true
+    });
+    if (result && result.ok) {
+      document.getElementById('addName').value = '';
+      document.getElementById('addUser').value = '';
+      document.getElementById('addPass').value = '';
+      showToast('添加成功：' + name);
+      render();
+    } else {
+      showToast('添加失败：' + (result && result.error ? result.error : '未知错误'));
+    }
+  } catch(e) {
+    showToast('添加失败：' + e.message);
+  }
+}
+
+async function toggleAccount(idx) {
+  var accounts = getAccounts();
+  var account = accounts[idx];
+  if (!account || !account.recordId) return;
+  
+  var newActive = !account.active;
+  try {
+    var result = await DataManager.updateSalesAccount(account.recordId, { active: newActive });
+    if (result && result.ok) {
+      showToast(account.name + (newActive ? ' 已启用' : ' 已停用'));
+      render();
+    } else {
+      showToast('操作失败：' + (result && result.error ? result.error : '未知错误'));
+    }
+  } catch(e) {
+    showToast('操作失败：' + e.message);
+  }
+}
+
+async function resetPassword(idx) {
+  var accounts = getAccounts();
+  var account = accounts[idx];
+  if (!account || !account.recordId) return;
+  
+  var newPass = prompt('请输入新密码（为 ' + account.name + '）：');
+  if (!newPass) return;
+  
+  await DataManager.updateSalesAccount(account.recordId, { password: newPass });
+  showToast('密码已重置');
+  render();
+}
+
+async function deleteAccount(idx) {
+  var accounts = getAccounts();
+  var account = accounts[idx];
+  if (!account || !account.recordId) return;
+  
+  if (!confirm('确定删除 ' + account.name + '？\n（将移入已删除列表，历史订单保留可查）')) return;
+  
+  await DataManager.updateSalesAccount(account.recordId, { deleted: true, active: false });
+  showToast('已移至已删除列表：' + account.name);
+  render();
+}
+async function restoreAccount(idx) {
+  var accounts = getAccounts();
+  var account = accounts[idx];
+  if (!account || !account.recordId) return;
+  
+  if (!confirm('确定恢复 ' + account.name + '？')) return;
+  
+  await DataManager.updateSalesAccount(account.recordId, { deleted: false, active: true });
+  showToast('已恢复：' + account.name);
+  render();
+}
+async function permanentDelete(idx) {
+  var accounts = getAccounts();
+  var account = accounts[idx];
+  if (!account || !account.recordId) return;
+  
+  if (!confirm('彻底删除 ' + account.name + '？\n此操作不可恢复！')) return;
+  
+  await DataManager.deleteSalesAccount(account.recordId);
+  showToast('已彻底删除');
+  render();
+}
+
+// === Orders Panel ===
+var currentFilter = 'all';
+
+function renderOrders() {
+  var orders = getOrders();
+  var accounts = getAccounts();
+  
+  // Build filter bar
+  var filterBar = document.getElementById('filterBar');
+  var filterHtml = '<div class="filter-btn ' + (currentFilter === 'all' ? 'active' : '') + '" onclick="filterOrders(\'all\')">全部</div>';
+  accounts.forEach(function(a) {
+    filterHtml += '<div class="filter-btn ' + (currentFilter === a.name ? 'active' : '') + '" onclick="filterOrders(\'' + esc(a.name) + '\')">' + esc(a.name) + '</div>';
+  });
+  filterBar.innerHTML = filterHtml;
+  
+  // Filter orders
+  var filtered = currentFilter === 'all' ? orders : orders.filter(function(o) { return o.salesperson === currentFilter; });
+  filtered = filtered.slice().reverse();
+  
+  var container = document.getElementById('orderList');
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty">暂无订单</div>';
+    return;
+  }
+  
+  var html = '';
+  filtered.forEach(function(o) {
+    var status = o.status || '待确认';
+    html += '<div class="order-card">';
+    html += '<div class="top"><span class="order-id">' + (o.id || o.orderNo || '') + '</span><span class="time">' + formatTime(o.time) + '</span></div>';
+    html += '<div class="items">' + (o.items || []).map(function(it) { return it.name + ' ×' + it.qty; }).join('、') + '</div>';
+    html += '<div class="bottom">';
+    html += '<span class="customer">' + (o.customer ? o.customer.name : '') + ' · ' + (o.salesperson || '') + '</span>';
+    html += '<span class="total">¥' + (parseFloat(o.total) || 0).toLocaleString() + '</span>';
+    html += '</div>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function filterOrders(name) {
+  currentFilter = name;
+  renderOrders();
+}
+
+// === Stats Panel ===
+function renderStats() {
+  var orders = getOrders();
+  var accounts = getAccounts();
+  
+  var totalOrders = orders.length;
+  var totalAmount = orders.reduce(function(s, o) { return s + (parseFloat(o.total) || 0); }, 0);
+  var totalCommission = Math.round(totalAmount * 0.25);
+  
+  var gridHtml = '';
+  gridHtml += '<div class="stat-box"><div class="num">' + totalOrders + '</div><div class="label">总订单</div></div>';
+  gridHtml += '<div class="stat-box"><div class="num">¥' + (totalAmount >= 10000 ? (totalAmount/10000).toFixed(1) + '万' : totalAmount.toLocaleString()) + '</div><div class="label">总金额</div></div>';
+  gridHtml += '<div class="stat-box"><div class="num">¥' + (totalCommission >= 10000 ? (totalCommission/10000).toFixed(1) + '万' : totalCommission.toLocaleString()) + '</div><div class="label">总佣金(25%)</div></div>';
+  document.getElementById('statsGrid').innerHTML = gridHtml;
+  
+  // Per-person stats
+  if (accounts.length === 0) {
+    document.getElementById('statsDetail').innerHTML = '<div class="empty">暂无销售人员数据</div>';
+    return;
+  }
+  
+  var detailHtml = '<h3 style="font-size:15px;margin-bottom:12px;color:var(--text)">个人业绩</h3>';
+  accounts.forEach(function(a) {
+    var pOrders = orders.filter(function(o) { return o.salesperson === a.name; });
+    var pAmount = pOrders.reduce(function(s, o) { return s + (parseFloat(o.total) || 0); }, 0);
+    var pCommission = Math.round(pAmount * 0.25);
+    detailHtml += '<div class="account-card">';
+    detailHtml += '<div class="name">' + esc(a.name) + '</div>';
+    detailHtml += '<div class="info" style="margin-top:8px">';
+    detailHtml += '<span>📦 ' + pOrders.length + ' 单</span>';
+    detailHtml += '<span>💰 销售 ¥' + pAmount.toLocaleString() + '</span>';
+    detailHtml += '<span>💵 佣金 ¥' + pCommission.toLocaleString() + '</span>';
+    detailHtml += '</div>';
+    detailHtml += '</div>';
+  });
+  document.getElementById('statsDetail').innerHTML = detailHtml;
+}
+
+// === Utils ===
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatTime(iso) {
+  if (!iso) return '';
+  var d = new Date(iso);
+  var m = (d.getMonth()+1).toString().padStart(2,'0');
+  var day = d.getDate().toString().padStart(2,'0');
+  var h = d.getHours().toString().padStart(2,'0');
+  var min = d.getMinutes().toString().padStart(2,'0');
+  return m + '-' + day + ' ' + h + ':' + min;
+}
+
+// 初始化 DataManager 并加载数据
+(async function() {
+  await DataManager.init();
+  render();
+  
+  // 监听数据变化自动刷新
+  DataManager.onChange(function() {
+    render();
+  });
+})();
+</script>
+</body>
+</html>

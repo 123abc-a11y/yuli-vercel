@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>屿礼·九土 - 订单管理</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Serif SC',-apple-system,,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:#FAFAF7;color:#2D2A26;min-height:100vh}
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:#fff;border-radius:16px;padding:40px 30px;width:100%;max-width:360px;text-align:center;box-shadow:0 2px 20px rgba(0,0,0,0.06)}
+.login-box h1{font-size:22px;margin-bottom:8px;letter-spacing:4px;color:#B8976A}
+.login-box p{font-size:13px;color:#9B9590;margin-bottom:30px}
+.login-input{width:100%;padding:14px 16px;background:#F5F3EE;border:1px solid #E8E3DC;border-radius:10px;color:#2D2A26;font-size:15px;outline:none;margin-bottom:15px}
+.login-input:focus{border-color:#B8976A}
+.login-btn{width:100%;padding:14px;background:#B8976A;color:#fff;border:none;border-radius:10px;font-size:16px;cursor:pointer;font-weight:500}
+.login-btn:active{background:#9B7E5A}
+.login-error{color:#e74c3c;font-size:13px;margin-top:10px;display:none}
+.admin-container{display:none}
+.admin-header{background:#fff;padding:20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,0.04)}
+.admin-header h1{font-size:20px;letter-spacing:3px;color:#B8976A;margin-bottom:4px}
+.admin-header p{font-size:12px;color:#9B9590}
+.admin-stats{display:flex;gap:10px;padding:15px;overflow-x:auto}
+.stat-card{background:#fff;border-radius:12px;padding:15px;min-width:120px;flex:1;text-align:center}
+.stat-num{font-size:24px;font-weight:700;color:#B8976A}
+.stat-label{font-size:12px;color:#9B9590;margin-top:4px}
+.admin-tabs{display:flex;background:#fff;margin:0 15px;border-radius:10px;overflow:hidden}
+.admin-tab{flex:1;padding:12px;text-align:center;font-size:13px;color:#9B9590;cursor:pointer;transition:all 0.3s}
+.admin-tab.active{background:#B8976A;color:#2D2A26}
+.admin-tab.tab-deleted.active{background:#e74c3c;color:#2D2A26}
+.order-list{padding:15px}
+.order-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;cursor:pointer;transition:transform 0.2s;border-left:4px solid #B8976A}
+.order-card:active{transform:scale(0.98)}
+.order-card.status-shipped{border-left-color:#f39c12}
+.order-card.status-done{border-left-color:#27ae60}
+.order-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.order-no{font-size:14px;font-weight:600;color:#B8976A}
+.order-status{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
+.status-pending{background:#e74c3c22;color:#e74c3c}
+.status-shipped{background:#f39c1222;color:#f39c12}
+.status-done{background:#27ae6022;color:#27ae60}
+.order-info{display:flex;justify-content:space-between;font-size:13px;color:#9B9590}
+.order-customer{font-size:13px;color:#aaa;margin-top:6px}
+.order-total{font-size:18px;font-weight:700;color:#e74c3c;margin-top:8px}
+.order-total::before{content:'¥';font-size:13px}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:flex-end;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:#FAFAF7;width:100%;max-width:800px;max-height:90vh;border-radius:20px 20px 0 0;overflow:hidden;display:flex;flex-direction:column}
+.modal-head{padding:20px;border-bottom:1px solid #F5F3EE;display:flex;justify-content:space-between;align-items:center}
+.modal-head h2{font-size:17px;color:#B8976A}
+.modal-close{width:32px;height:32px;border-radius:50%;background:#E8E3DC;border:none;color:#2D2A26;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.detail-body{flex:1;overflow-y:auto;padding:20px}
+.detail-section{margin-bottom:20px}
+.detail-section h3{font-size:14px;color:#B8976A;margin-bottom:10px;letter-spacing:1px}
+.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ffffff08;font-size:13px}
+.detail-row .label{color:#9B9590}
+.detail-row .value{color:#2D2A26;text-align:right;max-width:60%;word-break:break-all}
+.detail-item{display:flex;justify-content:space-between;align-items:center;padding:10px;background:#fff;border-radius:8px;margin-bottom:8px}
+.detail-item-name{font-size:13px;flex:1;margin-right:10px}
+.detail-item-right{text-align:right;white-space:nowrap}
+.detail-item-price{font-size:13px;color:#e74c3c}
+.detail-item-qty{font-size:12px;color:#9B9590;margin-left:8px}
+.status-select{width:100%;padding:12px;background:#F5F3EE;border:1px solid #E8E3DC;border-radius:10px;color:#2D2A26;font-size:14px;outline:none;appearance:none;-webkit-appearance:none}
+.status-select option{background:#fff;color:#2D2A26}
+.action-btns{display:flex;gap:10px;padding:20px;border-top:1px solid #E8E3DC}
+.action-btn{flex:1;padding:13px;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:500}
+.btn-copy{background:#F5F3EE;color:#2D2A26}
+.btn-copy:active{background:#1a4a7a}
+.btn-status{background:#B8976A;color:#2D2A26}
+.btn-status:active{background:#9B7E5A}
+.empty-state{text-align:center;padding:60px 20px;color:#555}
+.empty-state-icon{font-size:60px;margin-bottom:15px;opacity:0.3}
+
+
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#B8976A;color:#2D2A26;padding:12px 24px;border-radius:10px;font-size:14px;z-index:9999;display:none;box-shadow:0 4px 15px rgba(0,0,0,0.3)}
+.tracking-input-group{margin-top:12px;display:none}
+.tracking-input-group.show{display:block}
+.tracking-input{width:100%;padding:12px;background:#F5F3EE;border:1px solid #E8E3DC;border-radius:10px;color:#2D2A26;font-size:14px;outline:none;margin-bottom:8px}
+.tracking-input:focus{border-color:#f39c12}
+.tracking-input::placeholder{color:#9B9590}
+.tracking-confirm-btn{width:100%;padding:10px;background:#f39c12;color:#2D2A26;border:none;border-radius:8px;font-size:13px;cursor:pointer}
+.tracking-confirm-btn:active{background:#d68910}
+.btn-delete{background:#e74c3c33;color:#e74c3c;border:1px solid #e74c3c44}
+.btn-delete:active{background:#e74c3c55}
+.btn-restore{background:#F5F3EE;color:#2D2A26;border:1px solid #E8E3DC}
+.btn-restore:active{background:#1a4a7a}
+.order-card.deleted{border-left-color:#e74c3c;opacity:0.7}
+.deleted-badge{font-size:10px;background:#e74c3c33;color:#e74c3c;padding:2px 8px;border-radius:10px;margin-left:8px}
+.tracking-no{font-size:12px;color:#f39c12;margin-top:4px}
+/* ===== 新订单提醒 ===== */
+.new-order-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:5000;background:linear-gradient(135deg,#e74c3c,#c0392b);color:#2D2A26;padding:14px 20px;box-shadow:0 4px 20px rgba(231,76,60,0.4);animation:slideDown 0.4s ease}
+.new-order-banner.show{display:flex;align-items:center;justify-content:space-between}
+.new-order-banner-text{font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px}
+.new-order-banner-text .pulse{width:10px;height:10px;background:#fff;border-radius:50%;animation:pulse 1s infinite}
+.new-order-banner-close{background:rgba(255,255,255,0.2);border:none;color:#2D2A26;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.new-order-banner-close:active{background:rgba(255,255,255,0.4)}
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.3)}}
+
+
+@keyframes badgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+
+
+
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="login-screen" id="loginScreen">
+<div class="login-box">
+<h1>屿礼·九土</h1>
+<p>订单管理系统</p>
+<input type="password" class="login-input" id="passwordInput" placeholder="请输入管理密码" onkeydown="if(event.key==='Enter')doLogin()">
+<button class="login-btn" onclick="doLogin()">登 录</button>
+<div class="login-error" id="loginError">密码错误，请重试</div>
+</div>
+</div>
+
+<!-- 新订单提醒横幅 -->
+<div class="new-order-banner" id="newOrderBanner">
+<div class="new-order-banner-text"><span class="pulse"></span><span id="newOrderText">新订单来了！</span></div>
+<button class="new-order-banner-close" onclick="dismissBanner()">×</button>
+</div>
+
+<!-- Admin Container -->
+<div class="admin-container" id="adminContainer">
+<div class="admin-header">
+<h1>订单管理</h1>
+<p>屿礼·九土 后台</p>
+</div>
+
+<div class="admin-stats" id="adminStats">
+<div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">全部订单</div></div>
+<div class="stat-card"><div class="stat-num" id="statPending">0</div><div class="stat-label">待发货</div></div>
+<div class="stat-card"><div class="stat-num" id="statShipped">0</div><div class="stat-label">已发货</div></div>
+<div class="stat-card"><div class="stat-num" id="statDone">0</div><div class="stat-label">已完成</div></div>
+<div class="stat-card"><div class="stat-num" id="statRevenue">0</div><div class="stat-label">总金额(¥)</div></div>
+</div>
+
+<div class="admin-tabs">
+<div class="admin-tab active" onclick="filterOrders('all')">全部</div>
+<div class="admin-tab" onclick="filterOrders('pending')">待发货</div>
+<div class="admin-tab" onclick="filterOrders('shipped')">已发货</div>
+<div class="admin-tab" onclick="filterOrders('done')">已完成</div>
+<div class="admin-tab tab-deleted" onclick="filterOrders('deleted')">已删除</div>
+</div>
+
+<div class="order-list" id="orderList"></div>
+
+<div style="height:60px"></div>
+
+
+</div>
+
+<!-- Order Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+<div class="modal-box">
+<div class="modal-head">
+<h2>订单详情</h2>
+<button class="modal-close" onclick="closeDetail()">×</button>
+</div>
+<div class="detail-body" id="detailBody"></div>
+<div class="action-btns">
+<button class="action-btn btn-copy" onclick="copyOrder()">📋 一键复制</button>
+<button class="action-btn btn-status" onclick="toggleStatus()">🔄 更改状态</button>
+<button class="action-btn btn-delete" id="btnDelete" onclick="deleteOrder()">🗑 删除</button>
+</div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 数据同步模块 =====
+// 所有设备通过飞书多维表格同步数据
+// localStorage 作为本地缓存，API 作为真实数据源
+
+const API_BASE = '';
+
+const DataManager = {
+  _orders: [],
+  _salesAccounts: [],
+  _ordersUpdated: 0,
+  _salesUpdated: 0,
+  _callbacks: [],
+
+  // ===== 初始化 =====
+  async init() {
+    try {
+      await Promise.all([this.loadOrders(), this.loadSalesAccounts()]);
+    } catch(e) {
+      console.warn('初始化加载失败:', e);
+    }
+    // 每5秒轮询同步
+    setInterval(() => this._poll(), 5000);
+  },
+
+  // ===== 轮询 =====
+  async _poll() {
+    try {
+      const resp = await fetch(API_BASE + '/api/orders');
+      const result = await resp.json();
+      if (result.ok && result.updated > this._ordersUpdated) {
+        this._orders = result.data;
+        this._ordersUpdated = result.updated;
+        try { localStorage.setItem('jiutu_orders', JSON.stringify(this._orders)); } catch(e) {}
+        this._notify();
+      }
+    } catch(e) { /* 网络错误静默处理 */ }
+
+    try {
+      const resp2 = await fetch(API_BASE + '/api/sales');
+      const result2 = await resp2.json();
+      if (result2.ok && result2.updated > this._salesUpdated) {
+        this._salesAccounts = result2.data;
+        this._salesUpdated = result2.updated;
+        try { localStorage.setItem('jiutu_sales_accounts', JSON.stringify(this._salesAccounts)); } catch(e) {}
+        this._notify();
+      }
+    } catch(e) { /* 网络错误静默处理 */ }
+  },
+
+  _notify() {
+    this._callbacks.forEach(cb => { try { cb(); } catch(e) {} });
+  },
+
+  onChange(cb) { this._callbacks.push(cb); },
+
+  // ===== 订单 =====
+  async loadOrders() {
+    try {
+      const resp = await fetch(API_BASE + '/api/orders');
+      const result = await resp.json();
+      if (result.ok) {
+        this._orders = result.data;
+        this._ordersUpdated = result.updated;
+        try { localStorage.setItem('jiutu_orders', JSON.stringify(this._orders)); } catch(e) {}
+        this._notify();
+      }
+    } catch(e) {
+      this._orders = JSON.parse(localStorage.getItem('jiutu_orders') || '[]');
+      this._notify();
+    }
+    return this._orders;
+  },
+
+  getOrders() { return this._orders; },
+
+  async saveOrder(orderData) {
+    try {
+      const resp = await fetch(API_BASE + '/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+      const result = await resp.json();
+      if (result.ok) {
+        await this.loadOrders();
+        this._notify();
+      }
+      return result;
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  async updateOrder(recordId, updates) {
+    try {
+      const resp = await fetch(API_BASE + '/api/orders/' + recordId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      const result = await resp.json();
+      if (result.ok) {
+        await this.loadOrders();
+        this._notify();
+      }
+      return result;
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  // ===== 销售人员 =====
+  async loadSalesAccounts() {
+    try {
+      const resp = await fetch(API_BASE + '/api/sales');
+      const result = await resp.json();
+      if (result.ok) {
+        this._salesAccounts = result.data;
+        this._salesUpdated = result.updated;
+        try { localStorage.setItem('jiutu_sales_accounts', JSON.stringify(this._salesAccounts)); } catch(e) {}
+        this._notify();
+      }
+    } catch(e) {
+      this._salesAccounts = JSON.parse(localStorage.getItem('jiutu_sales_accounts') || '[]');
+      this._notify();
+    }
+    return this._salesAccounts;
+  },
+
+  getSalesAccounts() { return this._salesAccounts; },
+
+  async addSalesAccount(data) {
+    try {
+      const resp = await fetch(API_BASE + '/api/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await resp.json();
+      if (result.ok) {
+        await this.loadSalesAccounts();
+        this._notify();
+      }
+      return result;
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  async updateSalesAccount(recordId, updates) {
+    try {
+      const resp = await fetch(API_BASE + '/api/sales/' + recordId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      const result = await resp.json();
+      if (result.ok) {
+        await this.loadSalesAccounts();
+        this._notify();
+      }
+      return result;
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  async deleteSalesAccount(recordId) {
+    try {
+      const resp = await fetch(API_BASE + '/api/sales/' + recordId, { method: 'DELETE' });
+      const result = await resp.json();
+      if (result.ok) {
+        await this.loadSalesAccounts();
+        this._notify();
+      }
+      return result;
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  // ===== 飞书通知代理 =====
+  async notifyFeishu(webhookUrl, message) {
+    try {
+      await fetch(API_BASE + '/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhook: webhookUrl, message })
+      });
+    } catch(e) {}
+  },
+
+  // ===== 购物车（仍用 localStorage，但同步到订单时走 API） =====
+  getCart() {
+    return JSON.parse(localStorage.getItem('jiutu_cart') || '[]');
+  },
+  saveCart(cart) {
+    localStorage.setItem('jiutu_cart', JSON.stringify(cart));
+  }
+};
+
+
+const ADMIN_PASSWORD = 'jiutu2026';
+let orders = [];
+let currentFilter = 'all';
+let currentOrderId = null;
+let knownOrderIds = new Set(); // 已知订单ID集合
+let bannerTimer = null;
+const FEISHU_WEBHOOK = 'https://open.feishu.cn/open-apis/bot/v2/hook/c185238b-c3db-4d48-a1d7-6d1fb04d3e3d';
+let unreadNewOrders = []; // 未读的新订单
+
+async function doLogin() {
+  const pwd = document.getElementById('passwordInput').value;
+  if (pwd === ADMIN_PASSWORD) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminContainer').style.display = 'block';
+    await loadOrders(true);
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    setTimeout(() => document.getElementById('loginError').style.display = 'none', 2000);
+  }
+}
+
+// ===== 通知权限 =====
+function requestNotifPermission() {
+  if (!('Notification' in window)) {
+    showPermHint('当前浏览器不支持消息通知，请保持页面打开以接收提醒');
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    notifPermission = true;
+  } else if (Notification.permission !== 'denied') {
+    showPermHint('开启通知权限，新订单时会弹出提醒', true);
+  } else {
+    showPermHint('通知权限被拒绝，可在浏览器设置中重新开启');
+  }
+}
+
+
+function grantNotif(btn) {
+  Notification.requestPermission().then(p => {
+    if (p === 'granted') {
+      notifPermission = true;
+      showToast('✅ 通知已开启');
+      const hint = btn.closest('.perm-hint');
+      if (hint) hint.remove();
+    } else {
+      showToast('通知权限未开启');
+    }
+  });
+}
+
+// ===== 提示音 =====
+function playNotifSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // 两声短提示音
+    [0, 0.25].forEach(delay => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + delay + 0.15);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.15);
+    });
+  } catch(e) {}
+}
+
+// ===== 浏览器通知 =====
+function sendBrowserNotif(newOrders) {
+  if (!notifPermission || document.visibilityState === 'visible') return;
+  const count = newOrders.length;
+  const first = newOrders[0];
+  const title = `🔔 新订单提醒（${count}个）`;
+  const body = count === 1
+    ? `${first.customer.name} 下了¥${(first.total||0).toFixed(2)}的订单`
+    : `${first.customer.name}等${count}位客户下单了`;
+  const notif = new Notification(title, { body, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="80" font-size="80">🏺</text></svg>' });
+  setTimeout(() => notif.close(), 8000);
+}
+
+// ===== 新订单检测 =====
+function checkNewOrders() {
+  const allOrders = JSON.parse(localStorage.getItem('jiutu_orders') || '[]');
+  const currentIds = new Set(allOrders.filter(o => !o.deleted).map(o => (o.orderNo || o.id)));
+  
+  // 找出新增的订单（在currentIds中但不在knownOrderIds中）
+  const newIds = [...currentIds].filter(id => !knownOrderIds.has(id));
+  
+  if (newIds.length > 0 && knownOrderIds.size > 0) {
+    const newOrders = allOrders.filter(o => newIds.includes(o.orderNo || o.id));
+    triggerNewOrderAlert(newOrders);
+  }
+  
+  // 更新已知订单ID集合
+  knownOrderIds = currentIds;
+}
+
+function triggerNewOrderAlert(newOrders) {
+  unreadNewOrders = unreadNewOrders.concat(newOrders);
+  
+  // 1. 页面内横幅提醒
+  const banner = document.getElementById('newOrderBanner');
+  const textEl = document.getElementById('newOrderText');
+  const count = unreadNewOrders.length;
+  textEl.textContent = count === 1
+    ? `🎉 新订单！${newOrders[0].customer.name} 下单 ¥${(newOrders[0].total||0).toFixed(2)}`
+    : `🎉 ${count}个新订单！最新：${newOrders[newOrders.length-1].customer.name} 下单`;
+  banner.classList.add('show');
+  
+  // 自动隐藏横幅（15秒后）
+  if (bannerTimer) clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(dismissBanner, 15000);
+  
+  // 2. 提示音
+  playNotifSound();
+  
+  // 3. 浏览器通知（页面不可见时）
+  sendBrowserNotif(newOrders);
+  
+  // 4. 页面标题闪烁
+  startTitleFlash();
+}
+
+function dismissBanner() {
+  const banner = document.getElementById('newOrderBanner');
+  banner.classList.remove('show');
+  unreadNewOrders = [];
+  stopTitleFlash();
+  if (bannerTimer) { clearTimeout(bannerTimer); bannerTimer = null; }
+}
+
+// ===== 标题闪烁 =====
+let titleFlashTimer = null;
+let titleOriginal = document.title;
+function startTitleFlash() {
+  if (titleFlashTimer) return;
+  let flip = false;
+  titleFlashTimer = setInterval(() => {
+    document.title = flip ? titleOriginal : '🔔 新订单！';
+    flip = !flip;
+  }, 1000);
+}
+function stopTitleFlash() {
+  if (titleFlashTimer) { clearInterval(titleFlashTimer); titleFlashTimer = null; }
+  document.title = titleOriginal;
+}
+// 页面获得焦点时停止闪烁
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    stopTitleFlash();
+  }
+});
+
+async function loadOrders(isFirstLoad) {
+  await DataManager.loadOrders();
+  orders = DataManager.getOrders();
+  
+  if (isFirstLoad) {
+    knownOrderIds = new Set(orders.filter(o => !o.deleted).map(o => (o.orderNo || o.id)));
+  } else {
+    checkNewOrders();
+  }
+  
+  renderStats();
+  renderOrders();
+}
+
+function renderStats() {
+  const activeOrders = orders.filter(o => !o.deleted);
+  const total = activeOrders.length;
+  const pending = activeOrders.filter(o => o.status === 'pending').length;
+  const shipped = activeOrders.filter(o => o.status === 'shipped').length;
+  const done = activeOrders.filter(o => o.status === 'done').length;
+  const revenue = activeOrders.reduce((s, o) => s + (parseFloat(o.total) || 0), 0);
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statShipped').textContent = shipped;
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statRevenue').textContent = revenue.toFixed(0);
+}
+
+function filterOrders(status) {
+  currentFilter = status;
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  renderOrders();
+  // 切换删除按钮显示状态
+  const btnDel = document.getElementById('btnDelete');
+  if (btnDel) {
+    if (status === 'deleted') {
+      btnDel.textContent = '♻️ 恢复';
+      btnDel.className = 'action-btn btn-restore';
+      btnDel.onclick = restoreOrder;
+    } else {
+      btnDel.textContent = '🗑 删除';
+      btnDel.className = 'action-btn btn-delete';
+      btnDel.onclick = deleteOrder;
+    }
+  }
+}
+
+function getStatusText(s) {
+  return {pending:'待发货', shipped:'已发货', done:'已完成'}[s] || '待发货';
+}
+
+function getStatusClass(s) {
+  return 'status-' + (s || 'pending');
+}
+
+function renderOrders() {
+  let filtered;
+  if (currentFilter === 'all') {
+    filtered = orders.filter(o => !o.deleted);
+  } else if (currentFilter === 'deleted') {
+    filtered = orders.filter(o => o.deleted);
+  } else {
+    filtered = orders.filter(o => !o.deleted && (o.status || 'pending') === currentFilter);
+  }
+  const list = document.getElementById('orderList');
+  if (filtered.length === 0) {
+    const emptyText = currentFilter === 'deleted' ? '暂无已删除订单' : '暂无订单';
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📦</div><p>${emptyText}</p></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(o => `
+    <div class="order-card ${o.deleted ? 'deleted' : getStatusClass(o.status)}" onclick="showDetail('${o.orderNo || o.id}')">
+      <div class="order-top">
+        <span class="order-no">${o.orderNo || o.id}${o.deleted ? '<span class="deleted-badge">已删除</span>' : ''}</span>
+        <span class="order-status ${getStatusClass(o.status)}">${getStatusText(o.status)}</span>
+      </div>
+      <div class="order-info">
+        <span>${o.time}</span>
+        <span>${o.items.length}件商品</span>
+      </div>
+      <div class="order-customer">👤 ${o.customer.name} · ${o.customer.phone}${o.salesperson ? ` · 💼 ${o.salesperson}` : ''}</div>
+      ${o.customer.address ? `<div style="font-size:12px;color:#777;margin-top:4px">📍 ${o.customer.address}</div>` : ''}
+      ${o.trackingNo ? `<div class="tracking-no">📮 快递单号：${o.trackingNo}</div>` : ''}
+      ${o.deletedAt ? `<div style="font-size:11px;color:#e74c3c;margin-top:4px">删除时间：${o.deletedAt}</div>` : ''}
+      <div class="order-total">${(parseFloat(o.total) || 0).toFixed(2)}</div>
+    </div>
+  `).join('');
+}
+
+function showDetail(orderNo) {
+  const order = orders.find(o => (o.orderNo || o.id) === orderNo);
+  if (!order) return;
+  currentOrderId = orderNo;
+  const body = document.getElementById('detailBody');
+  body.innerHTML = `
+    <div class="detail-section">
+      <h3> 订单信息</h3>
+      <div class="detail-row"><span class="label">订单号</span><span class="value">${((order.orderNo || order.id) || order.id)}</span></div>
+      <div class="detail-row"><span class="label">下单时间</span><span class="value">${order.time}</span></div>
+      <div class="detail-row"><span class="label">订单状态</span><span class="value">${getStatusText(order.status)}</span></div>
+      ${order.salesperson ? `<div class="detail-row"><span class="label">销售人</span><span class="value" style="color:#B8976A">${order.salesperson}</span></div>` : ''}
+      ${order.trackingNo ? `<div class="detail-row"><span class="label">快递单号</span><span class="value" style="color:#f39c12">${order.trackingNo}</span></div>` : ''}
+      ${order.deleted ? `<div class="detail-row"><span class="label">删除时间</span><span class="value" style="color:#e74c3c">${order.deletedAt || '—'}</span></div>` : ''}
+    </div>
+    <div class="detail-section">
+      <h3>👤 客户信息</h3>
+      <div class="detail-row"><span class="label">姓名</span><span class="value">${order.customer.name}</span></div>
+      <div class="detail-row"><span class="label">电话</span><span class="value">${order.customer.phone}</span></div>
+      <div class="detail-row"><span class="label">收货地址</span><span class="value">${order.customer.address || '—'}</span></div>
+    </div>
+    <div class="detail-section">
+      <h3>📦 商品明细 (${order.items.length}件)</h3>
+      ${order.items.map(item => `
+        <div class="detail-item">
+          <div class="detail-item-name">${item.name}<br><span style="color:#9B9590;font-size:11px">${item.code}</span></div>
+          <div class="detail-item-right">
+            <span class="detail-item-price">¥${item.price.toFixed(2)}</span>
+            <span class="detail-item-qty">× ${item.qty}</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="detail-section">
+      <h3>💰 金额</h3>
+      <div class="detail-row"><span class="label">商品总额</span><span class="value" style="color:#e74c3c;font-size:18px;font-weight:700">¥${(order.total||0).toFixed(2)}</span></div>
+      <div class="detail-row"><span class="label">公司到手(7.5折)</span><span class="value" style="color:#B8976A;font-size:16px;font-weight:700">¥${((order.total||0)*0.75).toFixed(2)}</span></div>
+      <div class="detail-row"><span class="label">销售人佣金(25%)</span><span class="value" style="color:#f39c12">¥${((order.total||0)*0.25).toFixed(2)}</span></div>
+      <div class="detail-row"><span class="label">商品件数</span><span class="value">${order.items.reduce((s,i)=>s+i.qty,0)} 件</span></div>
+    </div>
+    <div class="detail-section">
+      <h3>🔄 更改状态</h3>
+      <select class="status-select" id="statusSelect" onchange="onStatusChange(this)">
+        <option value="pending" ${order.status==='pending'?'selected':''}>待发货</option>
+        <option value="shipped" ${order.status==='shipped'?'selected':''}>已发货</option>
+        <option value="done" ${order.status==='done'?'selected':''}>已完成</option>
+      </select>
+      <div class="tracking-input-group ${order.status==='shipped'&&!order.trackingNo?'show':''}" id="trackingGroup">
+        <input type="text" class="tracking-input" id="trackingInput" placeholder="请输入快递单号（必填）" value="${order.trackingNo || ''}">
+        <button class="tracking-confirm-btn" onclick="confirmTracking()">确认发货</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('detailModal').classList.add('show');
+}
+
+function closeDetail() {
+  document.getElementById('detailModal').classList.remove('show');
+}
+
+async function onStatusChange(selectEl) {
+  const newStatus = selectEl.value;
+  const order = orders.find(o => (o.orderNo || o.id) === currentOrderId);
+  if (!order) return;
+  if (newStatus === 'shipped') {
+    const group = document.getElementById('trackingGroup');
+    if (group) group.classList.add('show');
+    if (!order.trackingNo) { showToast('请先填写快递单号'); return; }
+  }
+  await changeStatus(newStatus);
+}
+
+async function confirmTracking() {
+  const trackingInput = document.getElementById('trackingInput');
+  const trackingNo = trackingInput ? trackingInput.value.trim() : '';
+  if (!trackingNo) { showToast('请输入快递单号'); return; }
+  
+  const order = orders.find(o => (o.orderNo || o.id) === currentOrderId);
+  if (!order) return;
+  
+  var oldStatus2 = order.status || 'pending';
+  order.trackingNo = trackingNo;
+  order.status = 'shipped';
+  renderStats();
+  renderOrders();
+  showDetail(currentOrderId);
+  showToast('已发货，快递单号：' + trackingNo);
+  notifyFeishuStatus(order, 'shipped', oldStatus2);
+  
+  if (order.recordId) {
+    await DataManager.updateOrder(order.recordId, { status: 'shipped', trackingNo: trackingNo });
+  }
+}
+
+
+function notifyFeishuStatus(order, newStatus, oldStatus) {
+  var statusMap = {pending:'待发货', shipped:'已发货', done:'已完成'};
+  var statusText = statusMap[newStatus] || newStatus;
+  var oldText = statusMap[oldStatus] || oldStatus || '未知';
+  var orderId = order.orderNo || order.id || '';
+  var customerName = order.customer ? order.customer.name : '';
+  var customerPhone = order.customer ? order.customer.phone : '';
+  var address = order.customer ? order.customer.address : '';
+  var tracking = order.trackingNo || '';
+  var total = parseFloat(order.total) || 0;
+  
+  var cardData = {
+    msg_type: 'interactive',
+    card: {
+      header: {
+        title: { tag: 'plain_text', content: '📋 屿礼·香有时 订单状态变更' },
+        template: 'orange'
+      },
+      elements: [
+        {
+          tag: 'div',
+          text: {
+            tag: 'lark_md',
+            content: '**订单号：** ' + orderId + '\n**状态：** ' + oldText + ' → **' + statusText + '**\n**客户：** ' + customerName + ' ' + customerPhone + '\n**地址：** ' + (address || '—') + '\n' + (tracking ? '\n**快递单号：** ' + tracking : '') + '\n\n**金额：¥' + total.toFixed(2) + '**\n**销售人：** ' + (order.salesperson || '—')
+          }
+        },
+        { tag: 'hr' },
+        {
+          tag: 'note',
+          elements: [
+            { tag: 'plain_text', content: '更新时间：' + new Date().toLocaleString('zh-CN') }
+          ]
+        }
+      ]
+    }
+  };
+  
+  DataManager.notifyFeishu(FEISHU_WEBHOOK, JSON.stringify(cardData));
+}
+
+async function changeStatus(newStatus) {
+  const order = orders.find(o => (o.orderNo || o.id) === currentOrderId);
+  if (!order) return;
+  var oldStatus = order.status || 'pending';
+  
+  // 先更新本地UI
+  order.status = newStatus;
+  renderStats();
+  renderOrders();
+  showDetail(currentOrderId);
+  showToast('状态已更新为：' + getStatusText(newStatus));
+  notifyFeishuStatus(order, newStatus, oldStatus);
+  
+  // 同步到API
+  if (order.recordId) {
+    await DataManager.updateOrder(order.recordId, { status: newStatus });
+  }
+}
+
+function toggleStatus() {
+  const order = orders.find(o => (o.orderNo || o.id) === currentOrderId);
+  if (!order) return;
+  
+  // 如果当前是待发货，要切到已发货必须先填快递单号
+  if ((order.status || 'pending') === 'pending') {
+    const group = document.getElementById('trackingGroup');
+    if (group) group.classList.add('show');
+    const select = document.getElementById('statusSelect');
+    if (select) select.value = 'shipped';
+    showToast('请先填写快递单号');
+    return;
+  }
+  
+  const flow = {pending:'shipped', shipped:'done', done:'pending'};
+  const next = flow[order.status || 'pending'];
+  changeStatus(next);
+  document.getElementById('statusSelect').value = next;
+}
+
+async function deleteOrder() {
+  const order = orders.find(o => (o.orderNo || o.id) === currentOrderId);
+  if (!order) return;
+  if (order.deleted) { showToast('该订单已删除'); return; }
+  if (!confirm('确定要删除此订单吗？\n删除后订单将移至"已删除"列表，不会永久丢失。')) return;
+  
+  order.deleted = true;
+  order.deletedAt = new Date().toLocaleString('zh-CN');
+  renderStats();
+  renderOrders();
+  closeDetail();
+  showToast('订单已删除（可在"已删除"列表查看）');
+  
+  if (order.recordId) {
+    await DataManager.updateOrder(order.recordId, { deleted: true });
+  }
+}
+
+async function restoreOrder() {
+  const order = orders.find(o => (o.orderNo || o.id) === currentOrderId);
+  if (!order) return;
+  if (!order.deleted) { showToast('该订单未被删除'); return; }
+  
+  order.deleted = false;
+  order.deletedAt = null;
+  renderStats();
+  renderOrders();
+  closeDetail();
+  showToast('订单已恢复');
+  
+  if (order.recordId) {
+    await DataManager.updateOrder(order.recordId, { deleted: false });
+  }
+}
+
+function copyOrder() {
+  const order = orders.find(o => (o.orderNo || o.id) === currentOrderId);
+  if (!order) return;
+  let text = `【屿礼·九土 订单】\n`;
+  text += `━━━━━━━━━━━━━━\n`;
+  text += `订单号：${((order.orderNo || order.id) || order.id)}\n`;
+  text += `时 间：${order.time}\n`;
+  text += `状 态：${getStatusText(order.status)}\n`;
+  if (order.salesperson) {
+    text += `销售人：${order.salesperson}\n`;
+  }
+  if (order.trackingNo) {
+    text += `快递单号：${order.trackingNo}\n`;
+  }
+  text += `━━━━━━━━━━━━━━\n`;
+  text += `客户：${order.customer.name}\n`;
+  text += `电话：${order.customer.phone}\n`;
+  text += `地址：${order.customer.address || '—'}\n`;
+  text += `━━━━━━━━━━━━━━\n`;
+  text += `商品明细：\n`;
+  order.items.forEach((item, i) => {
+    text += `${i+1}. ${item.name}\n`;
+    text += `   编码：${item.code} | ¥${item.price.toFixed(2)} × ${item.qty}\n`;
+  });
+  text += `━━━━━━━━━━━━━━\n`;
+  text += `共 ${order.items.reduce((s,i)=>s+i.qty,0)} 件\n`;
+  text += `合计：¥${(order.total||0).toFixed(2)}\n`;
+  text += `公司到手(7.5折)：¥${((order.total||0)*0.75).toFixed(2)}\n`;
+  text += `━━━━━━━━━━━━━━`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('已复制到剪贴板');
+  }
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(() => toast.style.display = 'none', 2000);
+}
+
+// 每3秒刷新UI + 检测新订单
+setInterval(() => {
+  orders = DataManager.getOrders();
+  checkNewOrders();
+  renderStats();
+  renderOrders();
+}, 3000);
+
+// 初始化 DataManager
+DataManager.init();
+DataManager.onChange(() => {
+  orders = DataManager.getOrders();
+  renderStats();
+  renderOrders();
+});
+</script>
+</body>
+</html>
