@@ -179,6 +179,13 @@ body{font-family:'Noto Serif SC',-apple-system,,BlinkMacSystemFont,'PingFang SC'
 const API_BASE = 'https://yuli-vercel-six.vercel.app';
   
 const DataManager = {
+  function fetchWithTimeout(url, opts, timeout) {
+  timeout = timeout || 8000;
+  return Promise.race([
+    fetch(url, opts),
+    new Promise(function(_, reject) { setTimeout(function() { reject(new Error('timeout')); }, timeout); })
+  ]);
+}
   _orders: [],
   _salesAccounts: [],
   _ordersUpdated: 0,
