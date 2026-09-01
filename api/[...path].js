@@ -197,7 +197,9 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const path = (req.query?.path || []).join('/') || '';
+  // 从 req.url 提取路径，兼容 Vercel catch-all 路由
+  const urlPath = (req.url || '').replace(/^\/api\/?/, '');
+  const path = urlPath || '';
 
   try {
     // GET /api/sales
@@ -219,7 +221,7 @@ module.exports = async function handler(req, res) {
       return json(res, data);
     }
 
-    // PATCH /api/sales/:id (soft delete)
+    // PATCH /api/sales/:id
     if (path.startsWith('sales/') && req.method === 'PATCH') {
       const id = path.split('/')[1];
       const data = await deleteSales(id);
@@ -252,7 +254,7 @@ module.exports = async function handler(req, res) {
       return json(res, data);
     }
 
-    // PATCH /api/orders/:id (soft delete)
+    // PATCH /api/orders/:id
     if (path.startsWith('orders/') && req.method === 'PATCH') {
       const id = path.split('/')[1];
       const data = await deleteOrder(id);
@@ -272,7 +274,7 @@ module.exports = async function handler(req, res) {
       return json(res, { ok: true, data });
     }
 
-    return json(res, { ok: false, error: 'Not found' }, 404);
+    return json(res, { ok: false, error: 'Not found: ' + path }, 404);
   } catch (err) {
     console.error('API Error:', err);
     return json(res, { ok: false, error: err.message }, 500);
