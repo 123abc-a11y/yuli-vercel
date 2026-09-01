@@ -158,14 +158,15 @@ body{font-family:var(--serif);background:var(--bg);color:var(--text);min-height:
 
 const API_BASE = 'https://yuli-vercel-six.vercel.app';
 
-const DataManager = {
-  function fetchWithTimeout(url, opts, timeout) {
+function fetchWithTimeout(url, opts, timeout) {
   timeout = timeout || 8000;
   return Promise.race([
     fetch(url, opts),
     new Promise(function(_, reject) { setTimeout(function() { reject(new Error('timeout')); }, timeout); })
   ]);
 }
+
+const DataManager = {
   _orders: [],
   _salesAccounts: [],
   _ordersUpdated: 0,
