@@ -42,8 +42,8 @@ async function feishuAPI(method, path, body = null) {
 
 // ===== 订单 =====
 async function listOrders() {
- const sort = [{ field_name: '下单时间', order: 'desc' }];
-const data = await feishuAPI('POST', `/bitable/v1/apps/${BITABLE_APP}/tables/${ORDER_TABLE}/records/search`, { sort, page_size: 100 });
+  const sort = [{ field_name: '下单时间', order: 'desc' }];
+  const data = await feishuAPI('POST', `/bitable/v1/apps/${BITABLE_APP}/tables/${ORDER_TABLE}/records/search`, { sort, page_size: 100 });
   if (data.code !== 0) throw new Error(data.msg);
   return (data.data?.items || []).map(formatOrder);
 }
@@ -88,7 +88,7 @@ async function deleteOrder(id) {
 
 // ===== 销售人员 =====
 async function listSales() {
- const data = await feishuAPI('POST', `/bitable/v1/apps/${BITABLE_APP}/tables/${SALES_TABLE}/records/search`, { page_size: 100 });
+  const data = await feishuAPI('POST', `/bitable/v1/apps/${BITABLE_APP}/tables/${SALES_TABLE}/records/search`, { page_size: 100 });
   if (data.code !== 0) throw new Error(data.msg);
   return (data.data?.items || []).map(formatSales);
 }
@@ -142,39 +142,31 @@ function formatOrder(record) {
   try { items = typeof f['商品明细'] === 'string' ? JSON.parse(f['商品明细']) : (f['商品明细'] || []); } catch(e) {}
   return {
     recordId: record.record_id,
-    orderNo: extractText(f['订单号']),
-    id: extractText(f['订单号']) || record.record_id,
-    time: extractText(f['下单时间']),
-    status: reverseStatus(extractText(f['状态'])),
-    customer: { name: extractText(f['客户姓名']), phone: extractText(f['客户电话']), address: extractText(f['收货地址']) },
+    orderNo: f['订单号'] || '',
+    id: f['订单号'] || record.record_id,
+    time: f['下单时间'] || '',
+    status: reverseStatus(f['状态']),
+    customer: { name: f['客户姓名'] || '', phone: f['客户电话'] || '', address: f['收货地址'] || '' },
     items,
-    total: parseFloat(extractText(f['订单总额'])) || 0,
-    salesperson: extractText(f['销售人']),
-    trackingNo: extractText(f['快递单号']),
-    deleted: f['是否删除'] === true,
-    deletedAt: extractText(f['删除时间'])
+    total: parseFloat(f['订单总额']) || 0,
+    salesperson: f['销售人'] || '',
+    trackingNo: f['快递单号'] || '',
+    deleted: f['是否删除'] || false,
+    deletedAt: f['删除时间'] || null
   };
-}
-
-// 提取飞书富文本字段的纯文本
-function extractText(val) {
-  if (!val) return '';
-  if (typeof val === 'string') return val;
-  if (Array.isArray(val)) return val.map(v => v.text || '').join('');
-  return String(val);
 }
 
 function formatSales(record) {
   const f = record.fields || {};
   return {
     recordId: record.record_id,
-    name: extractText(f['姓名']),
-    username: extractText(f['工号']),
-    password: extractText(f['密码']),
+    name: f['姓名'] || '',
+    username: f['工号'] || '',
+    password: f['密码'] || '',
     active: f['启用'] !== false,
-    createdAt: extractText(f['创建时间']),
-    deleted: f['是否删除'] === true,
-    deletedAt: extractText(f['删除时间'])
+    createdAt: f['创建时间'] || '',
+    deleted: f['是否删除'] || false,
+    deletedAt: f['删除时间'] || null
   };
 }
 
