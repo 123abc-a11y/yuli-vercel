@@ -42,9 +42,8 @@ async function feishuAPI(method, path, body = null) {
 
 // ===== 订单 =====
 async function listOrders() {
-  const filter = 'AND(CurrentValue.[是否删除]=false)';
-  const sort = [{ field_name: '下单时间', order: 'desc' }];
-  const data = await feishuAPI('POST', `/bitable/v1/apps/${BITABLE_APP}/tables/${ORDER_TABLE}/records/search`, { filter, sort, page_size: 100 });
+ const sort = [{ field_name: '下单时间', order: 'desc' }];
+const data = await feishuAPI('POST', `/bitable/v1/apps/${BITABLE_APP}/tables/${ORDER_TABLE}/records/search`, { sort, page_size: 100 });
   if (data.code !== 0) throw new Error(data.msg);
   return (data.data?.items || []).map(formatOrder);
 }
@@ -89,8 +88,7 @@ async function deleteOrder(id) {
 
 // ===== 销售人员 =====
 async function listSales() {
-  const filter = 'AND(CurrentValue.[是否删除]=false)';
-  const data = await feishuAPI('POST', `/bitable/v1/apps/${BITABLE_APP}/tables/${SALES_TABLE}/records/search`, { filter, page_size: 100 });
+ const data = await feishuAPI('POST', `/bitable/v1/apps/${BITABLE_APP}/tables/${SALES_TABLE}/records/search`, { page_size: 100 });
   if (data.code !== 0) throw new Error(data.msg);
   return (data.data?.items || []).map(formatSales);
 }
