@@ -177,15 +177,17 @@ body{font-family:'Noto Serif SC',-apple-system,,BlinkMacSystemFont,'PingFang SC'
 // localStorage 作为本地缓存，API 作为真实数据源
 
 const API_BASE = 'https://yuli-vercel-six.vercel.app';
-  
-const DataManager = {
-  function fetchWithTimeout(url, opts, timeout) {
+
+// 带超时的fetch，防止API卡住阻塞页面
+function fetchWithTimeout(url, opts, timeout) {
   timeout = timeout || 8000;
   return Promise.race([
     fetch(url, opts),
     new Promise(function(_, reject) { setTimeout(function() { reject(new Error('timeout')); }, timeout); })
   ]);
 }
+
+const DataManager = {
   _orders: [],
   _salesAccounts: [],
   _ordersUpdated: 0,
@@ -206,7 +208,7 @@ const DataManager = {
   // ===== 轮询 =====
   async _poll() {
     try {
-      const resp = await fetch(const API_BASE = 'https://yuli-vercel-six.vercel.app'; + '/api/orders');
+      const resp = await fetchWithTimeout(API_BASE + '/api/orders');
       const result = await resp.json();
       if (result.ok && result.updated > this._ordersUpdated) {
         this._orders = result.data;
@@ -217,7 +219,7 @@ const DataManager = {
     } catch(e) { /* 网络错误静默处理 */ }
 
     try {
-      const resp2 = await fetch(const API_BASE = 'https://yuli-vercel-six.vercel.app'; + '/api/sales');
+      const resp2 = await fetchWithTimeout(API_BASE + '/api/sales');
       const result2 = await resp2.json();
       if (result2.ok && result2.updated > this._salesUpdated) {
         this._salesAccounts = result2.data;
@@ -237,7 +239,7 @@ const DataManager = {
   // ===== 订单 =====
   async loadOrders() {
     try {
-      const resp = await fetch(const API_BASE = 'https://yuli-vercel-six.vercel.app'; + '/api/orders');
+      const resp = await fetchWithTimeout(API_BASE + '/api/orders');
       const result = await resp.json();
       if (result.ok) {
         this._orders = result.data;
@@ -256,7 +258,7 @@ const DataManager = {
 
   async saveOrder(orderData) {
     try {
-      const resp = await fetch(const API_BASE = 'https://yuli-vercel-six.vercel.app'; + '/api/orders', {
+      const resp = await fetchWithTimeout(API_BASE + '/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
@@ -274,7 +276,7 @@ const DataManager = {
 
   async updateOrder(recordId, updates) {
     try {
-      const resp = await fetch(const API_BASE = 'https://yuli-vercel-six.vercel.app'; + '/api/orders/' + recordId, {
+      const resp = await fetchWithTimeout(API_BASE + '/api/orders/' + recordId, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -293,7 +295,7 @@ const DataManager = {
   // ===== 销售人员 =====
   async loadSalesAccounts() {
     try {
-      const resp = await fetch(const API_BASE = 'https://yuli-vercel-six.vercel.app'; + '/api/sales');
+      const resp = await fetchWithTimeout(API_BASE + '/api/sales');
       const result = await resp.json();
       if (result.ok) {
         this._salesAccounts = result.data;
@@ -312,7 +314,7 @@ const DataManager = {
 
   async addSalesAccount(data) {
     try {
-      const resp = await fetch(const API_BASE = 'https://yuli-vercel-six.vercel.app'; + '/api/sales', {
+      const resp = await fetchWithTimeout(API_BASE + '/api/sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -330,7 +332,7 @@ const DataManager = {
 
   async updateSalesAccount(recordId, updates) {
     try {
-      const resp = await fetch(const API_BASE = 'https://yuli-vercel-six.vercel.app'; + '/api/sales/' + recordId, {
+      const resp = await fetchWithTimeout(API_BASE + '/api/sales/' + recordId, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -348,7 +350,7 @@ const DataManager = {
 
   async deleteSalesAccount(recordId) {
     try {
-      const resp = await fetch(const API_BASE = 'https://yuli-vercel-six.vercel.app'; + '/api/sales/' + recordId, { method: 'DELETE' });
+      const resp = await fetchWithTimeout(API_BASE + '/api/sales/' + recordId, { method: 'DELETE' });
       const result = await resp.json();
       if (result.ok) {
         await this.loadSalesAccounts();
@@ -363,7 +365,7 @@ const DataManager = {
   // ===== 飞书通知代理 =====
   async notifyFeishu(webhookUrl, message) {
     try {
-      await fetch(const API_BASE = 'https://yuli-vercel-six.vercel.app'; + '/api/notify', {
+      await fetchWithTimeout(API_BASE + '/api/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ webhook: webhookUrl, message })
